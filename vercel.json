@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "",
+  "installCommand": "npm ci",
+  "regions": ["iad1"],
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 60,
+      "includeFiles": "{public/**,node_modules/@zxing/browser/umd/zxing-browser.min.js}"
+    }
+  },
+  "routes": [{"src": "/(.*)", "dest": "/api/index"}]
+}
