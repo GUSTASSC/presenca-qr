@@ -1,0 +1,11 @@
+import {readFileSync} from 'node:fs';
+import {updateEnv} from '../lib/postgres-migration.js';
+const ref='omsyrikdarkjhqscbowp';
+const access=readFileSync('C:/Users/Best/.supabase/access-token','utf8').trim();
+const response=await fetch(`https://api.supabase.com/v1/projects/${ref}/api-keys`,{headers:{Authorization:`Bearer ${access}`}});
+if(!response.ok)throw Error('API_KEYS_HTTP_'+response.status);
+const keys=await response.json();
+const anon=keys.find(k=>k.name==='anon')?.api_key,service=keys.find(k=>k.name==='service_role')?.api_key;
+if(!anon||!service)throw Error('Required server credentials missing');
+updateEnv({SUPABASE_URL:`https://${ref}.supabase.co`,SUPABASE_ANON_KEY:anon,SUPABASE_SERVICE_ROLE_KEY:service,SUPABASE_AUTH_ENABLED:'false',SUPABASE_RECOVERY_ENABLED:'false'});
+console.log('Credenciais salvas somente no .env privado. Integração ainda desativada.');

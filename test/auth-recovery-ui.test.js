@@ -1,0 +1,20 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {JSDOM} from 'jsdom';
+import {readFileSync} from 'node:fs';
+test('interface Supabase: link limpo, confirmação explícita e redefinição sem tokens persistidos',async t=>{
+ const proof='a'.repeat(64),token='b'.repeat(43),requests=[];
+ const dom=new JSDOM(readFileSync(new URL('../public/index.html',import.meta.url),'utf8'),{url:'https://example.com/#auth-reset/'+proof,runScripts:'outside-only'});t.after(()=>dom.window.close());
+ const w=dom.window,$=s=>w.document.querySelector(s);
+ w.HTMLDialogElement.prototype.close=function(){};
+ w.fetch=async(url,options)=>{requests.push({url,body:JSON.parse(options.body)});return {ok:true,json:async()=>url==='/api/auth/recovery'?{token}:{ok:true}};};
+ w.eval(readFileSync(new URL('../public/app.js',import.meta.url),'utf8'));
+ assert.equal(w.location.hash,'#auth-reset');assert.equal(requests.length,0);assert.ok(!w.document.body.innerHTML.includes(proof));
+ $('#verify-recovery').click();await new Promise(r=>setTimeout(r,30));
+ assert.deepEqual(requests[0],{url:'/api/auth/recovery',body:{token_hash:proof}});
+ assert.ok(!w.document.body.innerHTML.includes(token));assert.equal(w.localStorage.length,0);
+ $('#recovery-form [name=password]').value='simple password';$('#recovery-form [name=confirmation]').value='simple password';
+ $('#recovery-form').dispatchEvent(new w.SubmitEvent('submit',{bubbles:true,cancelable:true,submitter:$('#recovery-form button')}));await new Promise(r=>setTimeout(r,30));
+ assert.deepEqual(requests[1],{url:'/api/reset-password',body:{token,password:'simple password'}});
+ assert.match($('#recovery-message').textContent,/Senha atualizada/);
+});
